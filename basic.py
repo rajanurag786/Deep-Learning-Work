@@ -16,6 +16,7 @@ for n_weights, n_biases in zip(weights, biases):
         output.append(n_output)
         
 print(output)
+print("This is just a check for the git commit")
         
         
 
