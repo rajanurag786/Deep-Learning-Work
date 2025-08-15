@@ -78,6 +78,28 @@ def parse_prompt(user_prompt):
         "Geometry fields vary: e.g., cylinders have 'radius' and 'height'; boxes have 'width', 'depth', 'height'.\n"
         "If relationships are mentioned (e.g., 'on top of'), calculate relative Z-position.\n"
     )
+
+    def extract_and_clean_json(text):
+        # Step 1: Remove anything before the first {
+        json_start = text.find('{')
+        if json_start == -1:
+            raise ValueError("No JSON object found.")
+
+        text = text[json_start:]
+
+        # Step 2: Find the matching closing brace
+        # We'll extract up to the last closing brace to avoid extra trailing comments
+        json_end = text.rfind('}') + 1
+        text = text[:json_end]
+
+        # Step 3: Replace single quotes with double quotes
+        text = text.replace("'", '"')
+
+        # Step 4: Remove trailing commas
+        text = re.sub(r",\s*([}\]])", r"\1", text)
+
+        # Step 5: Parse it
+        return json.loads(text)
     response = requests.post(
         "http://localhost:11434/api/generate",
         json={
