@@ -1,41 +1,3 @@
-# import requests
-# import json
-#
-# def parse_prompt(user_prompt):
-#     system_instruction = (
-#         "You are a structural engineering assistant. Read the user prompt carefully. "
-#         "Extract only the information that is explicitly provided. Do not generate data or fill in graphs or image paths unless mentioned. "
-#         "Return the result in JSON format with these fields:\n"
-#         "{\n"
-#         "  'geometry': { 'type': str, 'height_m': float, 'size_m': float },\n"
-#         "  'load': { 'type': str, 'magnitude_kN': float },\n"
-#         "  'analysis_type': str,\n"
-#         "  'outputs': {\n"
-#         "     'graphs': [ { 'title': str, 'x_label': str, 'y_label': str } ],\n"
-#         "     'images': []\n"
-#         "  }\n"
-#         "}\n"
-#         "If a field is not mentioned in the prompt, set it to null or skip it."
-#     )
-#
-#     response = requests.post(
-#         "http://localhost:11434/api/generate",
-#         json = {
-#             "model": "llama2",
-#             "prompt": f"{system_instruction}\n\n Prompt: {user_prompt}\n JSON:",
-#             "stream": False
-#         }
-#     )
-#
-#     result = response.json()["response"]
-#     parsed_dict = json.loads(result.strip())
-#     return parsed_dict
-#
-# # Example
-# user_prompt = "I want to analyze a column of height 3m and size 0.5m with 10kN force on it. The analysis should be static not dynamic and provide me the end report including the stress-strain, displacement graphs and images."
-# parsed = parse_prompt(user_prompt)
-# print(parsed)
-
 import json
 import requests
 import re
@@ -75,10 +37,10 @@ def parse_prompt(user_prompt):
         "  'load': { 'magnitude_N': float, 'direction': str },\n"
         "  'analysis_type': str\n"
         "}\n"
+        "IMPORTANT: Convert all load magnitudes to Newtons (N). For example, '10 kN' should become 10000.\n"
         "Geometry fields vary: e.g., cylinders have 'radius' and 'height'; boxes have 'width', 'depth', 'height'.\n"
         "If relationships are mentioned (e.g., 'on top of'), calculate relative Z-position.\n"
     )
-
     def extract_and_clean_json(text):
         # Step 1: Remove anything before the first {
         json_start = text.find('{')
@@ -88,7 +50,7 @@ def parse_prompt(user_prompt):
         text = text[json_start:]
 
         # Step 2: Find the matching closing brace
-        # We'll extract up to the last closing brace to avoid extra trailing comments
+        # extract up to the last closing brace to avoid extra trailing comments
         json_end = text.rfind('}') + 1
         text = text[:json_end]
 
