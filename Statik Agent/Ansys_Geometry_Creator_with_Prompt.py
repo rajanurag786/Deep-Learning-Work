@@ -34,43 +34,25 @@ def run_static_analysis(parsed_data):
         raise ValueError(f"Geometry must be a dict or list, got {type(geom)}")
 
     # Enforce exactly one primitive (for now)
-    if len(geometry_list) != 1:
-        raise ValueError(f"Expected 1 geometry, got {len(geometry_list)}")
+    if len(geometry_list) > 1:
+        print(f"Warning: Found {len(geometry_list)} geometries, but only analyzing the first one.")
+
+    if not geometry_list:
+        raise ValueError("No geometry found in the parsed data.")
 
     # Now safe to unpack
     shape_def = geometry_list[0]
     shape = shape_def["type"]
     params = shape_def["parameters"]
-    # 1) Normalize list → dict
-    # if isinstance(parsed_data, list):
-    #     if len(parsed_data) != 1:
-    #         raise ValueError(f"Expected 1 entry, got {len(parsed_data)}")
-    #     parsed_data = parsed_data[0]
-    #
-    # # 2) Extract the geometry block
-    # if "geometry" in parsed_data:
-    #     geom = parsed_data["geometry"]
-    #     # geometry itself might be a list or dict
-    #     if isinstance(geom, list):
-    #         if len(geom) != 1:
-    #             raise ValueError(f"Expected 1 geometry, got {len(geom)}")
-    #         geom = geom[0]
-    # else:
-    #     # assume parsed_data *is* the geometry block
-    #     geom = parsed_data
-    #
-    # # 3) Now geom must be a dict with keys: 'type', 'parameters'
-    # if not isinstance(geom, dict) or "type" not in geom or "parameters" not in geom:
-    #     raise ValueError(f"Cannot find geometry type/parameters in:\n{geom}")
-    #
-    # shape  = geom["type"]
-    # params = geom["parameters"]
-
-    # 4) Extract load
-    # It may live at parsed_data["load"] or inside geom["load"]
-    load_dict = parsed_data.get("load") or geom.get("load", {})
+    
+    load_dict = parsed_data.get("load") or \
+                shape_def.get("load") or \
+                params.get("load", {})
     if not load_dict or "magnitude_N" not in load_dict:
-        raise ValueError("No load.magnitude_N found in parsed data.")
+        raise ValueError(
+            "No 'load.magnitude_N' found in parsed data. "
+            f"Received parsed_data: {parsed_data}"
+        )
     load = float(load_dict["magnitude_N"])
 
     # 5) Material (may live in params or at top level)
@@ -180,25 +162,6 @@ def run_static_analysis(parsed_data):
     # sort by height for plotting
     sorted_df = nodes_df.sort_values("z")
 
-    # # 7) Plot Displacement vs Height
-    # plt.figure()
-    # plt.plot(sorted_df["z"], sorted_df["disp_z"])
-    # plt.xlabel("Height (m)")
-    # plt.ylabel("Displacement Z (m)")
-    # plt.title("Displacement vs Height")
-    # disp_plot = "disp_vs_z.png"
-    # plt.savefig(disp_plot)
-    # plt.close()
-    #
-    # # 8) Plot Stress vs Height
-    # plt.figure()
-    # plt.plot(sorted_df["z"], sorted_df["stress"])
-    # plt.xlabel("Height (m)")
-    # plt.ylabel("Von Mises Stress (Pa)")
-    # plt.title("Stress vs Height")
-    # stress_plot = "stress_vs_z.png"
-    # plt.savefig(stress_plot)
-    # plt.close()
 
     # 9) Return results + plot paths
     return {
@@ -211,7 +174,3 @@ def run_static_analysis(parsed_data):
         "stress_side": stress_side
     }
 
-    # return {
-    #     "max_displacement_z": float(max_disp),
-    #     "max_stress": float(max_stress)
-    # }
