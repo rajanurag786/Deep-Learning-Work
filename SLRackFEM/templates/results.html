@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form %}
+
+{% block title %}
+Ergebnisse
+{% endblock %}
+
+{% block head_extra %}
+
+<style type="text/css">
+.img-overlay-wrap {
+  position: sticky;
+  display: inline-block; /* <= shrinks container to image size */
+  top:0;
+  background-color: white;
+  z-index:100;
+}
+
+.img-overlay-wrap img { /* <= optional, for responsiveness */
+   display: block;
+   max-width: 100%;
+   height: auto;
+}
+
+.img-overlay-wrap svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.img-overlay-wrap svg text {
+  fill:blue;
+}
+
+.highlight-color {
+  --min: 0;
+  --max: 1;
+  --incs: oklch;
+  --value: 0.5;
+  --high-color: #F8696B;
+  --middle-color: #FFEB84;
+  --low-color: #63BE7B;
+}
+
+.highlight-color .highlightme {
+  /* This is where the magic happens */
+  --normed: calc(100% * (var(--value) - var(--min))/(var(--max) - var(--min)));
+}
+
+.highlight-color.highlight-2color .highlightme {
+  background-color: color-mix(
+    in var(--incs),
+    var(--high-color) var(--normed),
+    var(--low-color)
+  );
+}
+
+.highlight-color.highlight-3color .highlightme {
+  --n1: calc((var(--normed) - 50%) * 2);
+  --n2: calc(var(--normed)*2);
+  background-color: color-mix(
+    in var(--incs),
+    color-mix(in var(--incs), var(--high-color) var(--n1), var(--middle-color)) var(--normed),
+    color-mix(in var(--incs), var(--middle-color) var(--n2), var(--low-color))
+  );
+}
+</style>
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll('.autohighlight').forEach(el => {
+    const values = [];
+    const els = el.querySelectorAll('.highlightme');
+    els.forEach(vel => {
+        console.log(vel);
+        values.push(vel.innerText / 1);
+        vel.style.setProperty('--value', vel.innerText / 1);
+    });
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    el.style.setProperty('--min', min);
+    el.style.setProperty('--max', max);
+    });
+});
+</script>
+{% endblock %}
+
+
+{% block content %}
+<div>
+  <a href="/">zurück zur Eingabe</a>
+</div>
+<div class="img-overlay-wrap">
+  <img src="{{ url_for('static', filename='knoten.png') }}" />
+    <svg viewBox="0 0 1000 607">
+      <defs>
+        <filter x="0" y="0" width="1" height="1" id="solid">
+          <feFlood flood-color="white" result="bg" />
+          <feMerge>
+            <feMergeNode in="bg"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <text filter="url(#solid)" x="150" y="35" font-size="17">{{ geo.u }}</text>
+      <text filter="url(#solid)" x="450" y="35" font-size="17">{{ geo.a }}</text>
+      <text filter="url(#solid)" x="780" y="35" font-size="17">{{ geo.u_r }}</text>
+      <text filter="url(#solid)" x="180" y="195" font-size="17">{{ '%1.2f' % geo.len_left_strut() }}</text>
+      <text filter="url(#solid)" x="310" y="190" font-size="17">{{ geo.s }}</text>
+      <text filter="url(#solid)" x="380" y="265" font-size="17">{{ geo.h }}</text>
+      <text filter="url(#solid)" x="380" y="435" font-size="17">{{ geo.t }}</text>
+      <text filter="url(#solid)" x="465" y="210" font-size="17">{{ geo.beta }}°</text>
+      <text filter="url(#solid)" x="600" y="315" font-size="17">{{ '%1.2f' % geo.get_h2() }}</text>
+      <text filter="url(#solid)" x="640" y="265" font-size="17">{{ geo.s }}</text>
+      <text filter="url(#solid)" x="760" y="325" font-size="17">{{ '%1.2f' % geo.len_right_strut() }}</text>
+      <text filter="url(#solid)" x="760" y="435" font-size="17">{{ e }}</text>
+      <text filter="url(#solid)" x="820" y="495" font-size="17">{{ geo.alpha }}°</text>
+    </svg>
+  <p class="mb-2 mt-2"><b>Lastparameter:</b> g<sub>k</sub>={{ load.Gk }} kN/m<sup>2</sup>; s<sub>k</sub>={{ load.Sk }} kN/m<sup>2</sup>;
+    w<sub>D</sub>={{ load.Wdown }} kN/m<sup>2</sup>; w<sub>S</sub>={{load.Wup}} kN/m<sup>2</sup> </p>
+</div>
+{% if error %}
+<p>Es ist ein Fehler bei der Berechnung aufgetreten, dies kann bspw. an einer fehlerhaften Eingabe der Geometrieparameter liegen.</p>
+{% else %}
+<div>
+<h3>Schnittkräfte GZT</h3>
+<div class="table-responsive">
+  <table class="table highlight-color highlight-3color">
+    <thead>
+        <tr>
+            <th>Stab</th>
+            <th scope="col">Knoten</th>
+            <th></th>
+            <th style="border-left:2px solid black;">N<sub>d</sub> [kN]</th>
+            <th>N<sub>R,d</sub> [kN]</th>
+            <th style="border-left:2px solid black;">V<sub>z,d</sub> [kN]</th>
+            <th style="border-left: 2px solid black;">M<sub>y,d</sub> [kNm]</th>
+            <th>M<sub>y,R,d</sub> [kNm]</th>
+        </tr>
+    </thead>
+    <tbody class="table-group-divider">
+        {% for beam, data in beams.items() %}
+        {% set beam_loop = loop %}
+        {# TODO: Ausnutzung #}
+        {% set M_el_d = 10000 %}
+        {% set N_el_d = 200000 %}
+        {% for node in data.nodes %}
+          {% set loc_min = gzt.get_local_forces(node, False) %}
+          {% set loc_max = gzt.get_local_forces(node, True) %}
+          <tr{% if loop.first %} style="border-top:2px solid black;"{% endif %}>
+              {% if loop.first %}<th rowspan="{{ loop.length * 2  }}">{{beam }}</th>{% endif %}
+              <th scope="row" rowspan="2">{{ node }}</th>
+              <th>Min</th>
+              <td class="highlightme" style="border-left: 2px solid black;--min:0;--max:{{N_el_d}}};--value:{{ loc_min[0]/N_el_d | abs }}">{{ '%0.2f' |format(loc_min[0]/1000) }}</td>
+              <td>{{ '%0.0f' % (N_el_d / 1000) }}</td>
+              <td style="border-left: 2px solid black;">{{ '%0.2f' |format(loc_min[2]/1000) }}</td>
+              <td class="highlightme" style="border-left: 2px solid black;--min:0;--max:{{M_el_d}}};--value:{{ (loc_min[4]/M_el_d) | abs }}">{{ '%0.2f' |format(loc_min[4]/1000) }}</td>
+              <td>{{ '%0.2f' % (M_el_d / 1000) }}</td>
+          </tr>
+          <tr>
+              <th>Max</th>
+              <td class="highlightme" style="border-left: 2px solid black;--min:0;--max:{{N_el_d}}};--value:{{ loc_max[0]/N_el_d | abs }}">{{ '%0.2f' |format(loc_max[0]/1000) }}</td>
+              <td>{{ '%0.0f' % (N_el_d / 1000) }}</td>
+              <td style="border-left: 2px solid black;">{{ '%0.2f' |format(gzt.get_local_forces(node, True)[2]/1000) }}</td>
+              <td class="highlightme" style="border-left: 2px solid black;--min:0;--max:{{M_el_d}}};--value:{{ (loc_max[4]/M_el_d) | abs }}">{{ '%0.2f' |format(loc_max[4]/1000) }}</td>
+              <td>{{ '%0.2f' % (M_el_d / 1000) }}</td>
+          </tr>
+        {% endfor %}
+        {% endfor %}
+    </tbody>
+  </table>
+</div>
+<h3>Auflagerkräfte GZT</h3>
+<div class="table-responsive">
+  <table class="table">
+    <thead>
+        <tr>
+        <th scope="col">Auflager</th>
+        <th scope="col"></th>
+        <th scope="col">Min [kN] bzw. [kNm]</th>
+        <th scope="col">Max [kN] bzw. [kNm]</th>
+        </tr>
+    </thead>
+    <tbody class="table-group-divider">
+        {% for node in supports %}
+        <tr>
+            <th scope="row" rowspan="3">{{ node }}</th>
+            <td>F<sub>x</sub></td>
+            <td>{{ '%0.2f' |format(gzt.get_global_forces(node, False)[0]/1000) }}</td>
+            <td>{{ '%0.2f' |format(gzt.get_global_forces(node, True)[0]/1000) }}</td>
+        </tr>
+        <tr>
+            <td>F<sub>z</sub></td>
+            <td>{{ '%0.2f' |format(gzt.get_global_forces(node, False)[2]/1000) }}</td>
+            <td>{{ '%0.2f' |format(gzt.get_global_forces(node, True)[2]/1000) }}</td>
+        </tr>
+        <tr>
+            <td>M<sub>y</sub></td>
+            <td>{{ '%0.2f' |format(gzt.get_global_forces(node, False)[4]/1000) }}</td>
+            <td>{{ '%0.2f' |format(gzt.get_global_forces(node, True)[4]/1000) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+  </table>
+</div>
+<h3>Verformungen (GZG)</h3>
+<div class="table-responsive">
+  <table class="table">
+    <thead>
+        <tr>
+            <th scope="col">Knoten</th>
+            <th></th>
+            <th style="border-left:2px solid black;" colspan="3" class="bg-light">Lokal</th>
+            <th style="border-left:2px solid black;" colspan="2">Global</th>
+        </tr>
+        <tr>
+            <th></th>
+            <th></th>
+            <th style="border-left:2px solid black;" class="bg-light">u<sub>x</sub> [mm]</th>
+            <th class="bg-light">u<sub>z</sub> [mm]</th>
+            <th class="bg-light">|u| [mm]</th>
+            <th style="border-left:2px solid black;">U<sub>x</sub> [mm]</th>
+            <th>U<sub>z</sub> [mm]</th>
+        </tr>
+    </thead>
+    <tbody class="table-group-divider highlight-color highlight-3color autohighlight">
+        {% for beam, data in beams.items() %}
+        {% set beam_loop = loop %}
+        {% for node in data.nodes %}
+        <tr>
+            <th scope="row" rowspan="2">{{ node }}</th>
+            <th>Min</th>
+            <td style="border-left:2px solid black;" class="bg-light">{{ '%0.2f' |format(gzg.get_local_displacements(node, False)[0]*1000) }}</td>
+            <td class="bg-light">{{ '%0.2f' |format(gzg.get_local_displacements(node, False)[2]*1000) }}</td>
+            <td class="highlightme">{{ '%0.2f' |format((gzg.get_local_displacements(node, False)[0] ** 2 + gzg.get_local_displacements(node, False)[2] ** 2)** 0.5 *1000) }}</td>
+            <td style="border-left:2px solid black;">{{ '%0.2f' |format(gzg.get_global_displacements(node, False)[0]*1000) }}</td>
+            <td>{{ '%0.2f' |format(gzg.get_global_displacements(node, False)[2]*1000) }}</td>
+        </tr>
+        <tr>
+            <th>Max</th>
+            <td style="border-left:2px solid black;" class="bg-light">{{ '%0.2f' |format(gzg.get_local_displacements(node, True)[0]*1000) }}</td>
+            <td class="bg-light">{{ '%0.2f' |format(gzg.get_local_displacements(node, True)[2]*1000) }}</td>
+            <td class="highlightme">{{ '%0.2f' |format((gzg.get_local_displacements(node, True)[0] ** 2 + gzg.get_local_displacements(node, True)[2] ** 2) ** 0.5 *1000) }}</td>
+            <td style="border-left:2px solid black;">{{ '%0.2f' |format(gzg.get_global_displacements(node, True)[0]*1000) }}</td>
+            <td>{{ '%0.2f' |format(gzg.get_global_displacements(node, True)[2]*1000) }}</td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>
+{% endif %}
+{% endblock %}

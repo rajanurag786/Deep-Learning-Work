@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form, render_field %}
+
+{% block title %}
+Vorbemessung
+{% endblock %}
+
+{% block head_extra %}
+<style type="text/css">
+div.img-container {
+      position:sticky;
+      top:0;
+
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!--
+	TIPS about using Bootstrap-Flask:
+	https://github.com/helloflask/bootstrap-flask
+	https://bootstrap-flask.readthedocs.io/
+-->
+
+
+      <h1 class="pt-2 pb-2">Vorbemessung Zweipfostensystem mit Abstrebungen links/rechts</h1>
+
+
+      <form method="post" action="">
+
+      <h4>Lastparameter:</h4>
+            {% for field in form.load %}
+                  {{ render_field(field) }}
+            {% endfor %}
+      <div class="img-container">
+            <img style="width:100%;" src="{{ url_for('static', filename='parameter.png') }}" />
+      </div>
+      <h4 class="mt-5">Geometrische Parameter:</h4>
+
+      {% for field in form.geo %}
+      {{ render_field(field) }}
+      {% endfor %}
+      {{ render_field(form.submit) }}
+      </form>
+
+      <p class="pt-5"><strong>{{ message }}</strong></p>
+
+
+{% endblock %}

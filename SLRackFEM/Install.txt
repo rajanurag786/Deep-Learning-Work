@@ -1,0 +1,11 @@
+
+Virtuelle Umgebung:
+	python -m venv slrack-fem
+
+Requirements:
+	pip install -r requirements.txt
+	
+Server starten:
+	flask --app server --debug run
+	ODER
+	Rechte Maustaste auf 'server.py' -> Debug 'flast (server.py)'
