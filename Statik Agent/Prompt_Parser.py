@@ -41,6 +41,7 @@ def parse_prompt(user_prompt):
         "Geometry fields vary: e.g., cylinders have 'radius' and 'height'; boxes have 'width', 'depth', 'height'.\n"
         "If relationships are mentioned (e.g., 'on top of'), calculate relative Z-position.\n"
     )
+
     def extract_and_clean_json(text):
         # Step 1: Remove anything before the first {
         json_start = text.find('{')
@@ -50,7 +51,7 @@ def parse_prompt(user_prompt):
         text = text[json_start:]
 
         # Step 2: Find the matching closing brace
-        # extract up to the last closing brace to avoid extra trailing comments
+        # We'll extract up to the last closing brace to avoid extra trailing comments
         json_end = text.rfind('}') + 1
         text = text[:json_end]
 

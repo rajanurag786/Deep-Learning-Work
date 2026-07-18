@@ -36,8 +36,16 @@ def generate_pdf_report(results: dict, parsed: dict, output_path: str = "Static_
 
     # Results Summary
     c.drawString(50, h-260, "Results Summary:")
-    c.drawString(70, h-280, f"Max Displacement (Z): {results['max_displacement_z']:.6f} m")
-    c.drawString(70, h-300, f"Max von Mises Stress: {results['max_stress']:.2f} Pa")
+    max_disp_mm = results["max_displacement_z"] * 1000
+    max_stress_mpa = results["max_stress"] / 1e6
+
+    c.drawString(70, h - 280, f"Max |Z Displacement|: {max_disp_mm:.4f} mm")
+    c.drawString(70, h - 300, f"Max von Mises Stress: {max_stress_mpa:.3f} MPa")
+
+    if "num_nodes" in results:
+        c.drawString(70, h - 320, f"Nodes: {results['num_nodes']}")
+    if "num_elements" in results:
+        c.drawString(70, h - 340, f"Elements: {results['num_elements']}")
 
     # Embed ANSYS contour images
     y = h - 360
